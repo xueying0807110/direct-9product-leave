@@ -321,6 +321,8 @@
     let totalOptionCount = 0;
     let countdownTimer = null;
     const reviewedOptions = new Set();
+    const hoveredOptions = new Set();
+    let hasClickedOption = false;
 
     let totalClicks = 0;
     let optionClicks = 0;
@@ -418,8 +420,8 @@
 
     function updateContinueEligibility() {
       const hasReviewedAnyOption = reviewedOptions.size > 0;
-      const hasReviewedAllOptions = totalOptionCount > 0 && reviewedOptions.size >= totalOptionCount;
-      const shouldEnableContinue = hasReviewedAnyOption && (timeElapsed || hasReviewedAllOptions);
+      const hasActivelyReviewed = hasClickedOption && hoveredOptions.size > 1;
+      const shouldEnableContinue = hasReviewedAnyOption && (timeElapsed || hasActivelyReviewed);
 
       if (!shouldEnableContinue || canContinue) return;
 
@@ -435,11 +437,19 @@
       updateContinueEligibility();
     }
 
+    function markOptionHovered(option) {
+      if (!option || !option.dataset.index) return;
+
+      hoveredOptions.add(option.dataset.index);
+      markOptionReviewed(option);
+    }
+
     optionList.addEventListener('click', (event) => {
       const option = event.target.closest('.custom-option');
       if (!option) return;
 
       optionClicks += 1;
+      hasClickedOption = true;
       markOptionReviewed(option);
       selectOption(option);
     });
@@ -448,7 +458,7 @@
       const option = event.target.closest('.custom-option');
       if (!option) return;
 
-      markOptionReviewed(option);
+      markOptionHovered(option);
       decisionMessage.classList.remove('is-visible');
       previewOption(option, true);
     });
@@ -466,7 +476,7 @@
       const option = event.target.closest('.custom-option');
       if (!option) return;
 
-      markOptionReviewed(option);
+      markOptionHovered(option);
       decisionMessage.classList.remove('is-visible');
       previewOption(option);
     });
@@ -479,6 +489,7 @@
 
       event.preventDefault();
       optionClicks += 1;
+      hasClickedOption = true;
       markOptionReviewed(option);
       selectOption(option);
     });
@@ -490,10 +501,8 @@
       const action = button.dataset.action || '';
       if (!canContinue) {
         invalidButtonClicks += 1;
-        if (reviewedOptions.size === 0) {
-          decisionMessage.textContent = 'Please carefully review the products before continuing.';
-          decisionMessage.classList.add('is-visible');
-        }
+        decisionMessage.textContent = 'Please carefully review the products before continuing.';
+        decisionMessage.classList.add('is-visible');
         return;
       }
 
