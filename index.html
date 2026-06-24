@@ -316,6 +316,7 @@
     let buttonsEnabledTime = '';
     let canContinue = false;
     let countdownSeconds = 10;
+    let timeElapsed = false;
     let lastDisplayedImage = '';
     let totalOptionCount = 0;
     let countdownTimer = null;
@@ -415,8 +416,12 @@
       });
     }
 
-    function enableContinue() {
-      if (canContinue) return;
+    function updateContinueEligibility() {
+      const hasReviewedAnyOption = reviewedOptions.size > 0;
+      const hasReviewedAllOptions = totalOptionCount > 0 && reviewedOptions.size >= totalOptionCount;
+      const shouldEnableContinue = hasReviewedAnyOption && (timeElapsed || hasReviewedAllOptions);
+
+      if (!shouldEnableContinue || canContinue) return;
 
       canContinue = true;
       buttonRow.classList.add('is-enabled');
@@ -427,10 +432,7 @@
       if (!option || !option.dataset.index) return;
 
       reviewedOptions.add(option.dataset.index);
-
-      if (totalOptionCount > 0 && reviewedOptions.size >= totalOptionCount) {
-        enableContinue();
-      }
+      updateContinueEligibility();
     }
 
     optionList.addEventListener('click', (event) => {
@@ -447,6 +449,7 @@
       if (!option) return;
 
       markOptionReviewed(option);
+      decisionMessage.classList.remove('is-visible');
       previewOption(option, true);
     });
 
@@ -464,6 +467,7 @@
       if (!option) return;
 
       markOptionReviewed(option);
+      decisionMessage.classList.remove('is-visible');
       previewOption(option);
     });
 
@@ -486,6 +490,10 @@
       const action = button.dataset.action || '';
       if (!canContinue) {
         invalidButtonClicks += 1;
+        if (reviewedOptions.size === 0) {
+          decisionMessage.textContent = 'Please carefully review the products before continuing.';
+          decisionMessage.classList.add('is-visible');
+        }
         return;
       }
 
@@ -523,7 +531,8 @@
       if (countdownSeconds <= 0) {
         window.clearInterval(countdownTimer);
         countdownSeconds = 0;
-        enableContinue();
+        timeElapsed = true;
+        updateContinueEligibility();
         updateContinueButton();
         return;
       }
